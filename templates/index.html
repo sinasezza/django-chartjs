@@ -1,11 +1,32 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard</title>
+
+  <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}">
+  <script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
+  <script src="{% static 'chartjs/node_modules/chart.js/dist/chart.umd.js' %}"></script>
+ 
 </head>
 <body>
-  
+  {% include 'nav.html' %}
+
+  <div class="contaner">
+    <div class="row mt-3 pt-3">
+      <div class="col-md-4">
+        <div class="border p-3">
+          <h4>add Data</h4>
+          <hr>
+          <form action="" method="post">
+            {% csrf_token %}
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
