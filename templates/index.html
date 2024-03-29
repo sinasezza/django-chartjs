@@ -2,101 +2,165 @@
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
 
-  <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}">
-  <script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
-  <script src="{% static 'chartjs/node_modules/chart.js/dist/chart.umd.js' %}"></script>
- 
-</head>
-<body>
-  {% include 'nav.html' %}
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.png' %}">
+    <link
+      rel="stylesheet"
+      href="{% static 'bootstrap/css/bootstrap.min.css' %}"
+    />
 
-  <div class="container mt-3">
-    <div class="row">
-      <div class="col-md-4">
-        <div class="border p-3 shadow">
-          <h4>Add Data</h4>
-          <hr>
-          <form id="dataForm">
-            {% csrf_token %}
-            <div class="mb-3">
+    <script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'chartjs/node_modules/chart.js/dist/chart.umd.js' %}"></script>
+  </head>
+  <body>
+    {% include 'nav.html' %}
+
+    <div class="container mt-3">
+      <div class="row justify-content-center"> <!-- Center the form -->
+        <div class="col-md-4">
+          <div class="border p-3 shadow">
+            <h4>Add Data</h4>
+            <hr />
+            <form id="dataForm">
+              {% csrf_token %}
+              <div class="mb-3">
                 <label for="country" class="form-label">Country</label>
-                <input type="text" class="form-control" id="country" maxlength="30" name="country" required>
-            </div>
-            <div class="mb-3">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="country"
+                  maxlength="30"
+                  name="country"
+                  required
+                />
+              </div>
+              <div class="mb-3">
                 <label for="population" class="form-label">Population</label>
-                <input type="number" class="form-control" id="population" name="population" min="0" required>
-            </div>
-            <button type="submit" class="btn btn-success col-12">Add</button>
-          </form>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="population"
+                  name="population"
+                  min="0"
+                  required
+                />
+              </div>
+              <div class="mb-3 text-center"> <!-- Center the button -->
+                <button
+                  id="submit-btn"
+                  type="submit"
+                  class="btn btn-success col-12"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  id="deleteButton"
+                  class="btn btn-danger mt-2 d-none col-md-12 mx-auto d-block"
+                >
+                  Delete
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-  
-      <div class="col-md-8">
-        <div class="border p-3 my-3 rounded bg-white shadow">
-          <canvas id="barChart" width="400" height="300"></canvas>
+    
+      <div class="row mt-3"> <!-- Charts in one row -->
+        <div class="col-md-4">
+          <div class="border p-3 my-3 rounded bg-white shadow">
+            <canvas id="barChart" width="400" height="400"></canvas>
+          </div>
         </div>
-
-        <div class="border p-3 my-3 rounded bg-white shadow">
-          <canvas id="pieChart" width="400" height="300"></canvas>
+    
+        <div class="col-md-4">
+          <div class="border p-3 my-3 rounded bg-white shadow">
+            <canvas id="pieChart" width="400" height="400"></canvas>
+          </div>
         </div>
-
-        <div class="border p-3 my-3 rounded bg-white shadow">
-          <canvas id="lineChart" width="400" height="300"></canvas>
+    
+        <div class="col-md-4">
+          <div class="border p-3 my-3 rounded bg-white shadow">
+            <canvas id="lineChart" width="400" height="400"></canvas>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Data from Django -->
-  {{ datas|json_script:'datas' }}
-
-  <script defer>
-    // Parse data from Django
-    let datas = JSON.parse(JSON.parse(document.getElementById('datas').textContent));
     
-    // Log individual objects in the array
-    datas.forEach(data => {
+
+    <!-- Data from Django -->
+    {{ datas|json_script:'datas' }}
+
+    <script defer>
+      // Parse data from Django
+      let datas = JSON.parse(JSON.parse(document.getElementById('datas').textContent));
+
+      // Log individual objects in the array
+      /* datas.forEach(data => {
         console.log(`Pk: ${data.pk}, Country: ${data.fields.country}, Population: ${data.fields.population}`);
-    });
-    
-    // WebSocket setup
-    var socket = new WebSocket('ws://127.0.0.1:8000/ws/dashboard/');
+      });*/
 
-    socket.onopen = function(event) {
+      // WebSocket setup
+      var socket = new WebSocket('ws://127.0.0.1:8000/ws/dashboard/');
+
+      socket.onopen = function(event) {
         console.log('WebSocket is connected.');
-    };
+      };
 
-    socket.onmessage = function(event) {
+      socket.onmessage = function(event) {
         console.log('Message received:', event.data);
         handleWebSocketMessage(event.data);
-    };
+      };
 
-    socket.onclose = function(event) {
+      socket.onclose = function(event) {
         console.log('WebSocket is closed.');
-    };
+      };
 
-    function handleWebSocketMessage(message) {
+      function handleWebSocketMessage(message) {
         // Handle incoming messages from WebSocket
         var data = JSON.parse(message);
         console.log('Received data:', data);
-        
-        if(data.type === 'chart_new') {
-          addToCharts(data)
+
+        if (data.type === 'chart_new') {
+          addToCharts(data);
+          console.log(`data pk is ${data.pk}`);
+          datas.push({ pk: data.pk, fields: { country: data.country, population: data.population } });
+
+          datas.forEach(data => {
+              console.log(`Pk: ${data.pk}, Country: ${data.fields.country}, Population: ${data.fields.population}`);
+          });
         } else if (data.type === 'chart_update') {
           updateCharts(data);
-        }
-    }
+        } else if (data.type === 'chart_delete') {
+          if (data.deleted === true) {
+              var deletedIndex = data.index; // Get the index of the item to delete
+              if (deletedIndex !== -1) {
+                // Remove the country from the data
+                datas.splice(deletedIndex, 1);
+                removeFromCharts(data.country);
 
-    function addToCharts(data) {
+                // Update the charts
+                barChart.update();
+                pieChart.update();
+                lineChart.update();
+              }
+          } else {
+            console.log(`data deleted is ${data.deleted}`);
+          }
+        }
+
+        document.getElementById('dataForm').reset();
+        toggleFormButtons();
+      }
+
+
+      function addToCharts(data) {
         var country = data.country;
         var population = data.population;
-
-        console.log(`country is ${country} and population is ${population}`);
 
         // Update bar chart data
         barChart.data.labels.push(country);
@@ -112,177 +176,248 @@
         lineChart.data.labels.push(country);
         lineChart.data.datasets[0].data.push(population);
         lineChart.update();
-    }
-
-    function updateCharts(data) {
-      var country = data.country;
-      var population = data.population;
-  
-      // Update bar chart data
-      var barChartIndex = barChart.data.labels.indexOf(country);
-      if (barChartIndex !== -1) {
-        barChart.data.datasets[0].data[barChartIndex] = population;
       }
-  
-      // Update pie chart data
-      var pieChartIndex = pieChart.data.labels.indexOf(country);
-      if (pieChartIndex !== -1) {
-        pieChart.data.datasets[0].data[pieChartIndex] = population;
+
+      function updateCharts(data) {
+        var country = data.country;
+        var population = data.population;
+
+        // Update bar chart data
+        var barChartIndex = barChart.data.labels.indexOf(country);
+        if (barChartIndex !== -1) {
+          barChart.data.datasets[0].data[barChartIndex] = population;
+        }
+
+        // Update pie chart data
+        var pieChartIndex = pieChart.data.labels.indexOf(country);
+        if (pieChartIndex !== -1) {
+          pieChart.data.datasets[0].data[pieChartIndex] = population;
+        }
+
+        // Update line chart data
+        var lineChartIndex = lineChart.data.labels.indexOf(country);
+        if (lineChartIndex !== -1) {
+          lineChart.data.datasets[0].data[lineChartIndex] = population;
+        }
+
+        // Update chart visuals
+        barChart.update();
+        pieChart.update();
+        lineChart.update();
       }
-  
-      // Update line chart data
-      var lineChartIndex = lineChart.data.labels.indexOf(country);
-      if (lineChartIndex !== -1) {
-        lineChart.data.datasets[0].data[lineChartIndex] = population;
+
+      // Form submission handling
+      document.getElementById('dataForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent default form submission
+
+        var formData = new FormData(this);
+        var jsonData = {};
+
+        formData.forEach(function(value, key) {
+          jsonData[key] = value;
+        });
+
+        let countryExists = false;
+        let countryPk = null;
+
+        datas.forEach(data => {
+          if (data.fields.country === jsonData['country']) {
+            countryExists = true;
+            countryPk = data.pk;
+          }
+        });
+
+        if (countryExists) {
+          jsonData['update'] = countryPk; // Include the primary key in the data
+        }
+
+        console.log(jsonData);
+
+        // Send data to server via WebSocket
+        socket.send(JSON.stringify(jsonData));
+      });
+
+
+      // Function to show or hide the delete button based on whether the entered country exists
+      function toggleFormButtons() {
+        let countryInput = document.getElementById('country').value;
+        let deleteButton = document.getElementById('deleteButton');
+        let submitButton = document.getElementById('submit-btn');
+
+        var countryExists = false;
+
+        datas.forEach(data => {
+          if (data.fields.country === countryInput) {
+            countryExists = true;
+            return;
+          }
+        });
+
+        if (countryExists) {
+          submitButton.innerHTML = 'Update';
+          submitButton.classList.remove('btn-success');
+          submitButton.classList.add('btn-primary');
+          deleteButton.classList.remove('d-none');
+        } else {
+          deleteButton.classList.add('d-none');
+          submitButton.innerHTML ='Add';
+          submitButton.classList.remove('btn-primary');
+          submitButton.classList.add('btn-success');
+        }
       }
-  
-      // Update chart visuals
-      barChart.update();
-      pieChart.update();
-      lineChart.update();
-  }
 
-  // Form submission handling
-  document.getElementById('dataForm').addEventListener('submit', function(event) {
-    event.preventDefault(); // Prevent default form submission
+      // Add event listener to the country input field to toggle the delete button
+      document.getElementById('country').addEventListener('input', toggleFormButtons);
 
-    var formData = new FormData(this);
-    var jsonData = {};
+      // Add event listener to the delete button to handle deletion from the charts
+      document.getElementById('deleteButton').addEventListener('click', function() {
+        let countryToDelete = document.getElementById('country').value;
 
-    formData.forEach(function(value, key) {
-      jsonData[key] = value;
-    });
+        // Find the index of the country in the data
+        var dataIndex = datas.findIndex(data => data.fields.country === countryToDelete);
+        if (dataIndex !== -1) {
+          const itemId = datas[dataIndex].pk;
+          console.log(`item id is ${itemId}`);
 
-    let countryExists = false;
-    let countryPk = null;
+          // Send delete request to WebSocket
+          socket.send(JSON.stringify({ 'delete': itemId, 'index': dataIndex }));
+        }
+      });
 
-    datas.forEach(data => {
-      if (data.fields.country === jsonData['country']) {
-          countryExists = true;
-          countryPk = data.pk;
+      // Function to remove a country from the charts
+      function removeFromCharts(country) {
+
+        console.log(`country to delete is ${country}`);
+
+        // Find the index of the country in each chart
+        var barIndex = barChart.data.labels.indexOf(country);
+        var pieIndex = pieChart.data.labels.indexOf(country);
+        var lineIndex = lineChart.data.labels.indexOf(country);
+
+        // Remove the country from each chart
+        if (barIndex !== -1) {
+          barChart.data.labels.splice(barIndex, 1);
+          barChart.data.datasets[0].data.splice(barIndex, 1);
+        }
+        if (pieIndex !== -1) {
+          pieChart.data.labels.splice(pieIndex, 1);
+          pieChart.data.datasets[0].data.splice(pieIndex, 1);
+        }
+        if (lineIndex !== -1) {
+          lineChart.data.labels.splice(lineIndex, 1);
+          lineChart.data.datasets[0].data.splice(lineIndex, 1);
+        }
       }
-    });
 
-    if (countryExists) {
-      jsonData['id'] = countryPk; // Include the primary key in the data
-    }
 
-    console.log(jsonData);
-
-    // Send data to server via WebSocket
-    socket.send(JSON.stringify(jsonData));
-  });
-
-  // Chart initialization
-  var ctxBar = document.getElementById('barChart').getContext('2d');
-  var barChart = new Chart(ctxBar, {
-      type: 'bar',
-      data: {
+      // Chart initialization
+      var ctxBar = document.getElementById('barChart').getContext('2d');
+      var barChart = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
           labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
           datasets: [{
               label: '#Population(Million)',
-              data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
+              data: [{% for data in countries  %}{{data.population}},{% endfor %}],
               backgroundColor: [
-                  'rgba(255, 99, 132, 0.2)',
-                  'rgba(54, 162, 235, 0.2)',
-                  'rgba(255, 206, 86, 0.2)',
-                  'rgba(75, 192, 192, 0.2)',
-                  'rgba(153, 102, 255, 0.2)',
-                  'rgba(255, 159, 64, 0.2)'
+                'rgba(255, 99, 132, 0.2)',
+                'rgba(54, 162, 235, 0.2)',
+                'rgba(255, 206, 86, 0.2)',
+                'rgba(75, 192, 192, 0.2)',
+                'rgba(153, 102, 255, 0.2)',
+                'rgba(255, 159, 64, 0.2)'
               ],
               borderColor: [
-                  'rgba(255, 99, 132, 1)',
-                  'rgba(54, 162, 235, 1)',
-                  'rgba(255, 206, 86, 1)',
-                  'rgba(75, 192, 192, 1)',
-                  'rgba(153, 102, 255, 1)',
-                  'rgba(255, 159, 64, 1)'
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)',
+                'rgba(153, 102, 255, 1)',
+                'rgba(255, 159, 64, 1)'
               ],
               borderWidth: 1
           }]
-      },
-      options: {
+        },
+        options: {
           scales: {
               y: {
                   beginAtZero: true
               }
           }
-      }
-  });
+        }
+      });
 
-  var ctxPie = document.getElementById('pieChart').getContext('2d');
-  var pieChart = new Chart(ctxPie, {
-      type: 'pie',
-      data: {
-          labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
-          datasets: [{
-              label: '#Population(Million)',
-              data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
-              backgroundColor: [
-                  'rgba(255, 99, 132, 0.2)',
-                  'rgba(54, 162, 235, 0.2)',
-                  'rgba(255, 206, 86, 0.2)',
-                  'rgba(75, 192, 192, 0.2)',
-                  'rgba(153, 102, 255, 0.2)',
-                  'rgba(255, 159, 64, 0.2)'
-              ],
-              borderColor: [
-                  'rgba(255, 99, 132, 1)',
-                  'rgba(54, 162, 235, 1)',
-                  'rgba(255, 206, 86, 1)',
-                  'rgba(75, 192, 192, 1)',
-                  'rgba(153, 102, 255, 1)',
-                  'rgba(255, 159, 64, 1)'
-              ],
-              borderWidth: 1
-          }]
-      },
-      options: {
-          scales: {
-              y: {
-                  beginAtZero: true
+      var ctxPie = document.getElementById('pieChart').getContext('2d');
+      var pieChart = new Chart(ctxPie, {
+          type: 'pie',
+          data: {
+              labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
+              datasets: [{
+                  label: '#Population(Million)',
+                  data: [{% for data in countries  %}{{data.population}},{% endfor %}],
+                  backgroundColor: [
+                      'rgba(255, 99, 132, 0.2)',
+                      'rgba(54, 162, 235, 0.2)',
+                      'rgba(255, 206, 86, 0.2)',
+                      'rgba(75, 192, 192, 0.2)',
+                      'rgba(153, 102, 255, 0.2)',
+                      'rgba(255, 159, 64, 0.2)'
+                  ],
+                  borderColor: [
+                      'rgba(255, 99, 132, 1)',
+                      'rgba(54, 162, 235, 1)',
+                      'rgba(255, 206, 86, 1)',
+                      'rgba(75, 192, 192, 1)',
+                      'rgba(153, 102, 255, 1)',
+                      'rgba(255, 159, 64, 1)'
+                  ],
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              scales: {
+                  y: {
+                      beginAtZero: true
+                  }
               }
           }
-      }
-  });
+      });
 
-  var ctxLine = document.getElementById('lineChart').getContext('2d');
-  var lineChart = new Chart(ctxLine, {
-      type: 'line',
-      data: {
-          labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
-          datasets: [{
-              label: '#Population(Million)',
-              data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
-              backgroundColor: [
-                  'rgba(255, 99, 132, 0.2)',
-                  'rgba(54, 162, 235, 0.2)',
-                  'rgba(255, 206, 86, 0.2)',
-                  'rgba(75, 192, 192, 0.2)',
-                  'rgba(153, 102, 255, 0.2)',
-                  'rgba(255, 159, 64, 0.2)'
-              ],
-              borderColor: [
-                  'rgba(255, 99, 132, 1)',
-                  'rgba(54, 162, 235, 1)',
-                  'rgba(255, 206, 86, 1)',
-                  'rgba(75, 192, 192, 1)',
-                  'rgba(153, 102, 255, 1)',
-                  'rgba(255, 159, 64, 1)'
-              ],
-              borderWidth: 1
-          }]
-      },
-      options: {
-          scales: {
-              y: {
-                  beginAtZero: true
+      var ctxLine = document.getElementById('lineChart').getContext('2d');
+      var lineChart = new Chart(ctxLine, {
+          type: 'line',
+          data: {
+              labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
+              datasets: [{
+                  label: '#Population(Million)',
+                  data: [{% for data in countries  %}{{data.population}},{% endfor %}],
+                  backgroundColor: [
+                      'rgba(255, 99, 132, 0.2)',
+                      'rgba(54, 162, 235, 0.2)',
+                      'rgba(255, 206, 86, 0.2)',
+                      'rgba(75, 192, 192, 0.2)',
+                      'rgba(153, 102, 255, 0.2)',
+                      'rgba(255, 159, 64, 0.2)'
+                  ],
+                  borderColor: [
+                      'rgba(255, 99, 132, 1)',
+                      'rgba(54, 162, 235, 1)',
+                      'rgba(255, 206, 86, 1)',
+                      'rgba(75, 192, 192, 1)',
+                      'rgba(153, 102, 255, 1)',
+                      'rgba(255, 159, 64, 1)'
+                  ],
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              scales: {
+                  y: {
+                      beginAtZero: true
+                  }
               }
           }
-      }
-  });
-</script>
-
-
-</body>
+      });
+    </script>
+  </body>
 </html>
