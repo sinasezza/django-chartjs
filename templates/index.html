@@ -15,18 +15,162 @@
 <body>
   {% include 'nav.html' %}
 
-  <div class="contaner">
-    <div class="row mt-3 pt-3">
+  <div class="container mt-3">
+    <div class="row">
       <div class="col-md-4">
-        <div class="border p-3">
-          <h4>add Data</h4>
+        <div class="border p-3 shadow">
+          <h4>Add Data</h4>
           <hr>
           <form action="" method="post">
             {% csrf_token %}
+            <div class="mb-3">
+                <label for="country" class="form-label">Country</label>
+                <input type="text" class="form-control" id="country" maxlength="30" name="country" required>
+            </div>
+            <div class="mb-3">
+                <label for="population" class="form-label">Population</label>
+                <input type="number" class="form-control" id="population" name="population" min="0" required>
+            </div>
+            <button type="submit" class="btn btn-success col-12">add</button>
           </form>
+        
         </div>
+      </div>
+  
+      <div class="col-md-8">
+        <div class="border p-3 my-3 rounded bg-white shadow">
+          <canvas id="barChart" width="400" height="300"></canvas>
+        </div>
+
+        <div class="border p-3 my-3 rounded bg-white shadow">
+          <canvas id="pieChart" width="400" height="300"></canvas>
+        </div>
+
+        <div class="border p-3 my-3 rounded bg-white shadow">
+          <canvas id="lineChart" width="400" height="300"></canvas>
+        </div>
+
       </div>
     </div>
   </div>
+
+
+  <script>
+      // BAR CHART
+      var ctx = document.getElementById('barChart').getContext('2d');
+      var barChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
+              datasets: [{
+                  label: '#Population(Million)',
+                  data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
+                  backgroundColor: [
+                      'rgba(255, 99, 132, 0.2)',
+                      'rgba(54, 162, 235, 0.2)',
+                      'rgba(255, 206, 86, 0.2)',
+                      'rgba(75, 192, 192, 0.2)',
+                      'rgba(153, 102, 255, 0.2)',
+                      'rgba(255, 159, 64, 0.2)'
+                  ],
+                  borderColor: [
+                      'rgba(255, 99, 132, 1)',
+                      'rgba(54, 162, 235, 1)',
+                      'rgba(255, 206, 86, 1)',
+                      'rgba(75, 192, 192, 1)',
+                      'rgba(153, 102, 255, 1)',
+                      'rgba(255, 159, 64, 1)'
+                  ],
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              scales: {
+                  y: {
+                      beginAtZero: true
+                  }
+              }
+          }
+      });
+  </script>
+
+  <script>
+    // PIE CHART
+    var ctx = document.getElementById('pieChart').getContext('2d');
+    var pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
+            datasets: [{
+                label: '#Population(Million)',
+                data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+
+<script>
+  // LINE CHART
+  var ctx = document.getElementById('lineChart').getContext('2d');
+  var lineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+          labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
+          datasets: [{
+              label: '#Population(Million)',
+              data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
+              backgroundColor: [
+                  'rgba(255, 99, 132, 0.2)',
+                  'rgba(54, 162, 235, 0.2)',
+                  'rgba(255, 206, 86, 0.2)',
+                  'rgba(75, 192, 192, 0.2)',
+                  'rgba(153, 102, 255, 0.2)',
+                  'rgba(255, 159, 64, 0.2)'
+              ],
+              borderColor: [
+                  'rgba(255, 99, 132, 1)',
+                  'rgba(54, 162, 235, 1)',
+                  'rgba(255, 206, 86, 1)',
+                  'rgba(75, 192, 192, 1)',
+                  'rgba(153, 102, 255, 1)',
+                  'rgba(255, 159, 64, 1)'
+              ],
+              borderWidth: 1
+          }]
+      },
+      options: {
+          scales: {
+              y: {
+                  beginAtZero: true
+              }
+          }
+      }
+  });
+</script>
+
 </body>
 </html>
