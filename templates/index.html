@@ -21,7 +21,7 @@
         <div class="border p-3 shadow">
           <h4>Add Data</h4>
           <hr>
-          <form action="" method="post">
+          <form id="dataForm">
             {% csrf_token %}
             <div class="mb-3">
                 <label for="country" class="form-label">Country</label>
@@ -31,9 +31,8 @@
                 <label for="population" class="form-label">Population</label>
                 <input type="number" class="form-control" id="population" name="population" min="0" required>
             </div>
-            <button type="submit" class="btn btn-success col-12">add</button>
+            <button type="submit" class="btn btn-success col-12">Add</button>
           </form>
-        
         </div>
       </div>
   
@@ -49,112 +48,206 @@
         <div class="border p-3 my-3 rounded bg-white shadow">
           <canvas id="lineChart" width="400" height="300"></canvas>
         </div>
-
       </div>
     </div>
   </div>
 
+  <!-- Data from Django -->
+  {{ datas|json_script:'datas' }}
 
-  <script>
-    var socket = new WebSocket('ws://127.0.0.1:8000/ws/chart/');
+  <script defer>
+    // Parse data from Django
+    let datas = JSON.parse(JSON.parse(document.getElementById('datas').textContent));
+    
+    // Log individual objects in the array
+    datas.forEach(data => {
+        console.log(`Pk: ${data.pk}, Country: ${data.fields.country}, Population: ${data.fields.population}`);
+    });
+    
+    // WebSocket setup
+    var socket = new WebSocket('ws://127.0.0.1:8000/ws/dashboard/');
 
     socket.onopen = function(event) {
         console.log('WebSocket is connected.');
-        // You can send data to the server here if needed
     };
 
     socket.onmessage = function(event) {
         console.log('Message received:', event.data);
-        // Handle incoming messages from the server
+        handleWebSocketMessage(event.data);
     };
 
     socket.onclose = function(event) {
         console.log('WebSocket is closed.');
     };
-  </script>
 
-  <script>
-      // BAR CHART
-      var ctx = document.getElementById('barChart').getContext('2d');
-      var barChart = new Chart(ctx, {
-          type: 'bar',
-          data: {
-              labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
-              datasets: [{
-                  label: '#Population(Million)',
-                  data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
-                  backgroundColor: [
-                      'rgba(255, 99, 132, 0.2)',
-                      'rgba(54, 162, 235, 0.2)',
-                      'rgba(255, 206, 86, 0.2)',
-                      'rgba(75, 192, 192, 0.2)',
-                      'rgba(153, 102, 255, 0.2)',
-                      'rgba(255, 159, 64, 0.2)'
-                  ],
-                  borderColor: [
-                      'rgba(255, 99, 132, 1)',
-                      'rgba(54, 162, 235, 1)',
-                      'rgba(255, 206, 86, 1)',
-                      'rgba(75, 192, 192, 1)',
-                      'rgba(153, 102, 255, 1)',
-                      'rgba(255, 159, 64, 1)'
-                  ],
-                  borderWidth: 1
-              }]
-          },
-          options: {
-              scales: {
-                  y: {
-                      beginAtZero: true
-                  }
+    function handleWebSocketMessage(message) {
+        // Handle incoming messages from WebSocket
+        var data = JSON.parse(message);
+        console.log('Received data:', data);
+        
+        if(data.type === 'chart_new') {
+          addToCharts(data)
+        } else if (data.type === 'chart_update') {
+          updateCharts(data);
+        }
+    }
+
+    function addToCharts(data) {
+        var country = data.country;
+        var population = data.population;
+
+        console.log(`country is ${country} and population is ${population}`);
+
+        // Update bar chart data
+        barChart.data.labels.push(country);
+        barChart.data.datasets[0].data.push(population);
+        barChart.update();
+
+        // Update pie chart data
+        pieChart.data.labels.push(country);
+        pieChart.data.datasets[0].data.push(population);
+        pieChart.update();
+
+        // Update line chart data
+        lineChart.data.labels.push(country);
+        lineChart.data.datasets[0].data.push(population);
+        lineChart.update();
+    }
+
+    function updateCharts(data) {
+      var country = data.country;
+      var population = data.population;
+  
+      // Update bar chart data
+      var barChartIndex = barChart.data.labels.indexOf(country);
+      if (barChartIndex !== -1) {
+        barChart.data.datasets[0].data[barChartIndex] = population;
+      }
+  
+      // Update pie chart data
+      var pieChartIndex = pieChart.data.labels.indexOf(country);
+      if (pieChartIndex !== -1) {
+        pieChart.data.datasets[0].data[pieChartIndex] = population;
+      }
+  
+      // Update line chart data
+      var lineChartIndex = lineChart.data.labels.indexOf(country);
+      if (lineChartIndex !== -1) {
+        lineChart.data.datasets[0].data[lineChartIndex] = population;
+      }
+  
+      // Update chart visuals
+      barChart.update();
+      pieChart.update();
+      lineChart.update();
+  }
+
+  // Form submission handling
+  document.getElementById('dataForm').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent default form submission
+
+    var formData = new FormData(this);
+    var jsonData = {};
+
+    formData.forEach(function(value, key) {
+      jsonData[key] = value;
+    });
+
+    let countryExists = false;
+    let countryPk = null;
+
+    datas.forEach(data => {
+      if (data.fields.country === jsonData['country']) {
+          countryExists = true;
+          countryPk = data.pk;
+      }
+    });
+
+    if (countryExists) {
+      jsonData['id'] = countryPk; // Include the primary key in the data
+    }
+
+    console.log(jsonData);
+
+    // Send data to server via WebSocket
+    socket.send(JSON.stringify(jsonData));
+  });
+
+  // Chart initialization
+  var ctxBar = document.getElementById('barChart').getContext('2d');
+  var barChart = new Chart(ctxBar, {
+      type: 'bar',
+      data: {
+          labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
+          datasets: [{
+              label: '#Population(Million)',
+              data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
+              backgroundColor: [
+                  'rgba(255, 99, 132, 0.2)',
+                  'rgba(54, 162, 235, 0.2)',
+                  'rgba(255, 206, 86, 0.2)',
+                  'rgba(75, 192, 192, 0.2)',
+                  'rgba(153, 102, 255, 0.2)',
+                  'rgba(255, 159, 64, 0.2)'
+              ],
+              borderColor: [
+                  'rgba(255, 99, 132, 1)',
+                  'rgba(54, 162, 235, 1)',
+                  'rgba(255, 206, 86, 1)',
+                  'rgba(75, 192, 192, 1)',
+                  'rgba(153, 102, 255, 1)',
+                  'rgba(255, 159, 64, 1)'
+              ],
+              borderWidth: 1
+          }]
+      },
+      options: {
+          scales: {
+              y: {
+                  beginAtZero: true
               }
           }
-      });
-  </script>
+      }
+  });
 
-  <script>
-    // PIE CHART
-    var ctx = document.getElementById('pieChart').getContext('2d');
-    var pieChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
-            datasets: [{
-                label: '#Population(Million)',
-                data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.2)',
-                    'rgba(54, 162, 235, 0.2)',
-                    'rgba(255, 206, 86, 0.2)',
-                    'rgba(75, 192, 192, 0.2)',
-                    'rgba(153, 102, 255, 0.2)',
-                    'rgba(255, 159, 64, 0.2)'
-                ],
-                borderColor: [
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)',
-                    'rgba(255, 159, 64, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-</script>
+  var ctxPie = document.getElementById('pieChart').getContext('2d');
+  var pieChart = new Chart(ctxPie, {
+      type: 'pie',
+      data: {
+          labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
+          datasets: [{
+              label: '#Population(Million)',
+              data: [{% for data in countries  %}'{{data.population}}',{% endfor %}],
+              backgroundColor: [
+                  'rgba(255, 99, 132, 0.2)',
+                  'rgba(54, 162, 235, 0.2)',
+                  'rgba(255, 206, 86, 0.2)',
+                  'rgba(75, 192, 192, 0.2)',
+                  'rgba(153, 102, 255, 0.2)',
+                  'rgba(255, 159, 64, 0.2)'
+              ],
+              borderColor: [
+                  'rgba(255, 99, 132, 1)',
+                  'rgba(54, 162, 235, 1)',
+                  'rgba(255, 206, 86, 1)',
+                  'rgba(75, 192, 192, 1)',
+                  'rgba(153, 102, 255, 1)',
+                  'rgba(255, 159, 64, 1)'
+              ],
+              borderWidth: 1
+          }]
+      },
+      options: {
+          scales: {
+              y: {
+                  beginAtZero: true
+              }
+          }
+      }
+  });
 
-<script>
-  // LINE CHART
-  var ctx = document.getElementById('lineChart').getContext('2d');
-  var lineChart = new Chart(ctx, {
+  var ctxLine = document.getElementById('lineChart').getContext('2d');
+  var lineChart = new Chart(ctxLine, {
       type: 'line',
       data: {
           labels: [{% for data in countries  %}'{{data.country}}',{% endfor %}],
@@ -189,6 +282,7 @@
       }
   });
 </script>
+
 
 </body>
 </html>
