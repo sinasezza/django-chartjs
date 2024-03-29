@@ -56,6 +56,24 @@
 
 
   <script>
+    var socket = new WebSocket('ws://127.0.0.1:8000/ws/chart/');
+
+    socket.onopen = function(event) {
+        console.log('WebSocket is connected.');
+        // You can send data to the server here if needed
+    };
+
+    socket.onmessage = function(event) {
+        console.log('Message received:', event.data);
+        // Handle incoming messages from the server
+    };
+
+    socket.onclose = function(event) {
+        console.log('WebSocket is closed.');
+    };
+  </script>
+
+  <script>
       // BAR CHART
       var ctx = document.getElementById('barChart').getContext('2d');
       var barChart = new Chart(ctx, {
